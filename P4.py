@@ -61,7 +61,7 @@ while userInput <= 3:
         FROM sale
         GROUP BY category
         """
-        
+
         #Stores the categories into a list and prints them out in a numbered list
         dfCategory = pd.read_sql_query(query, engine)
         categoryList = dfCategory['category'].tolist()
@@ -69,7 +69,55 @@ while userInput <= 3:
             print(f"{i}. {category}")
         
         #Collects input from a user to know which category to run analytics on
-        summary = int(input("Please enter the number of the category you want to see summarized: "))
+        repeat = True
+
+        while repeat:
+            try:
+                summary = int(input("Please enter the number of the category you want to see summarized: "))
+        
+                if 1 <= summary <= len(categoryList): 
+                    selectedCategory = categoryList[summary - 1]
+            
+                    statsQuery = f"""
+                        SELECT category, 
+                            SUM(total_price) AS sum, 
+                            AVG(total_price) AS avg, 
+                            COUNT(quantity_sold) AS units
+                        FROM sale
+                        WHERE category = '{selectedCategory}'
+                        GROUP BY category
+                    """
+                    dfStats = pd.read_sql_query(statsQuery, engine)
+                    totalSales = dfStats.loc[0, 'sum']
+                    averageSales = dfStats.loc[0, 'avg']
+                    unitsSold = dfStats.loc[0, 'units']
+            
+                    print(f"\nSummary for {selectedCategory}:")
+                    print(f"Total Sales: ${totalSales:,.2f}")
+                    print(f"Average Sale: ${averageSales:,.2f}")
+                    print(f"Units Sold: {unitsSold}")
+
+                    chartQuery = f'''SELECT product, 
+                            SUM(total_price) AS sum
+                            FROM sale
+                            WHERE category = '{selectedCategory}'
+                            GROUP BY product
+                            '''
+                    dfChart = pd.read_sql_query(chartQuery, engine)
+                    dfChart.plot(kind='bar')
+                    plot.title(f"Total Sales in {selectedCategory}")
+                    plot.xlabel("Product")
+                    plot.ylabel("Total Sales")
+                    plot.xticks(ticks=range(len(dfChart)), labels=dfChart['product'], rotation=45)
+                    plot.show()
+
+                    doAgain = input("Would you like to run statistics on another sales category? (yes/no): ").strip().lower()
+                    if doAgain != "yes":
+                        repeat = False
+                else:
+                    print("Please enter a valid number.")
+            except ValueError:
+                print("Invalid input. Please enter a number.")
 
     #ends the program
     else:
