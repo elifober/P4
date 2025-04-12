@@ -1,3 +1,7 @@
+#Chad Laursen, Elias Fobert, Joseph Rather, Isaac Johnson, Alayna Smith
+#IS303
+#Runs a program that takes info from an excel sheet, cleans it, uploads it to postgres, runs queries, and prints a chat of summary stats
+
 from sqlalchemy import create_engine, text
 import pandas as pd
 import psycopg2
@@ -70,14 +74,14 @@ while userInput <= 3:
         
         #Collects input from a user to know which category to run analytics on
         repeat = True
-
+        #Runs summary stats
         while repeat:
             try:
                 summary = int(input("Please enter the number of the category you want to see summarized: "))
         
                 if 1 <= summary <= len(categoryList): 
                     selectedCategory = categoryList[summary - 1]
-            
+                    #runs a query to pull sum, average, and count for a selected category
                     statsQuery = f"""
                         SELECT category, 
                             SUM(total_price) AS sum, 
@@ -87,22 +91,25 @@ while userInput <= 3:
                         WHERE category = '{selectedCategory}'
                         GROUP BY category
                     """
+                    #prints summary stats
                     dfStats = pd.read_sql_query(statsQuery, engine)
                     totalSales = dfStats.loc[0, 'sum']
                     averageSales = dfStats.loc[0, 'avg']
                     unitsSold = dfStats.loc[0, 'units']
-            
                     print(f"\nSummary for {selectedCategory}:")
                     print(f"Total Sales: ${totalSales:,.2f}")
                     print(f"Average Sale: ${averageSales:,.2f}")
                     print(f"Units Sold: {unitsSold}")
 
+                    #runs a query that pulls necessary info for the bar chart
                     chartQuery = f'''SELECT product, 
                             SUM(total_price) AS sum
                             FROM sale
                             WHERE category = '{selectedCategory}'
                             GROUP BY product
                             '''
+                    
+                    #saves the info into a pd dataframe and prints the plot
                     dfChart = pd.read_sql_query(chartQuery, engine)
                     dfChart.plot(kind='bar')
                     plot.title(f"Total Sales in {selectedCategory}")
@@ -110,7 +117,8 @@ while userInput <= 3:
                     plot.ylabel("Total Sales")
                     plot.xticks(ticks=range(len(dfChart)), labels=dfChart['product'], rotation=45)
                     plot.show()
-
+                    
+                    #repeats until the user is done
                     doAgain = input("Would you like to run statistics on another sales category? (yes/no): ").strip().lower()
                     if doAgain != "yes":
                         repeat = False
